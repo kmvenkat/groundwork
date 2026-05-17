@@ -352,7 +352,7 @@ export default function App() {
     <div className="layout">
       <aside className="sidebar">
         <div className="sidebar-header">
-          <p className="wordmark">Universal Employment</p>
+          <p className="wordmark">Groundwork</p>
           <p className="sidebar-headline">
             there&apos;s always <strong>something available.</strong>
           </p>
