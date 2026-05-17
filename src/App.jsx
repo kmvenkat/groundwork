@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
 const PROXY = '/api/training';
 
@@ -239,17 +239,38 @@ export default function App() {
   const [currentJobIdx, setCurrentJobIdx] = useState(0);
   const [currentPrograms, setCurrentPrograms] = useState([]);
   const [trainingFilter, setTrainingFilter] = useState('all');
-  const [activePanel, setActivePanel] = useState('empty');
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  const [drawerScreen, setDrawerScreen] = useState('detail');
   const [feedState, setFeedState] = useState('initial');
   const [programsState, setProgramsState] = useState('idle');
   const [trainingRoleTitle, setTrainingRoleTitle] = useState('');
   const [selectedProgram, setSelectedProgram] = useState(null);
 
-  const showPanel = (name) => setActivePanel(name);
+  useEffect(() => {
+    if (drawerOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, [drawerOpen]);
+
+  const closeDrawer = () => {
+    setDrawerOpen(false);
+    setDrawerScreen('detail');
+  };
+
+  const drawerBack = () => {
+    if (drawerScreen === 'program') setDrawerScreen('training');
+    else if (drawerScreen === 'training') setDrawerScreen('grow');
+    else if (drawerScreen === 'grow') setDrawerScreen('detail');
+  };
 
   const selectProgram = (program) => {
     setSelectedProgram(program);
-    showPanel('program');
+    setDrawerScreen('program');
   };
 
   const setRadius = (val) => setSelectedRadius(val);
@@ -258,27 +279,28 @@ export default function App() {
     const zip = zipInput.trim();
     if (zip.length < 5) return;
     setCurrentZip(zip);
+    setDrawerOpen(false);
     setFeedState('loading');
     await new Promise((r) => setTimeout(r, 700));
     setFeedState('loaded');
-    showPanel('empty');
   };
 
   const selectJob = (idx) => {
     setCurrentJobIdx(idx);
-    showPanel('detail');
+    setDrawerScreen('detail');
+    setDrawerOpen(true);
   };
 
   const renderGrow = (idx) => {
     setCurrentJobIdx(idx);
-    showPanel('grow');
+    setDrawerScreen('grow');
   };
 
   const loadTraining = async (keyword, roleTitle) => {
     setTrainingRoleTitle(roleTitle);
     setTrainingFilter('all');
     setProgramsState('loading');
-    showPanel('training');
+    setDrawerScreen('training');
 
     try {
       const res = await fetch(
@@ -349,72 +371,68 @@ export default function App() {
       : null;
 
   return (
-    <div className="layout">
-      <aside className="sidebar">
-        <div className="sidebar-header">
-          <p className="wordmark">Groundwork</p>
-          <p className="sidebar-headline">
-            there&apos;s always <strong>something available.</strong>
-          </p>
-        </div>
-
-        <div className="search-area">
-          <div className="zip-row">
-            <input
-              className="zip-input"
-              type="text"
-              placeholder="zip code"
-              maxLength={5}
-              inputMode="numeric"
-              value={zipInput}
-              onChange={(e) => setZipInput(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') doSearch();
-              }}
-            />
-            <button type="button" className="search-btn" onClick={doSearch}>
-              find jobs
-            </button>
-          </div>
-          <div className="radius-row">
-            <span className="radius-label">within</span>
-            <div className="chips">
-              {[5, 10, 25].map((r) => (
-                <button
-                  key={r}
-                  type="button"
-                  className={`chip${selectedRadius === r ? ' active' : ''}`}
-                  onClick={() => setRadius(r)}
-                >
-                  {r} mi
-                </button>
-              ))}
-            </div>
-          </div>
-        </div>
-
-        <div className="feed-area">
-          {feedState === 'initial' && (
-            <div style={{ padding: '32px 0', textAlign: 'center' }}>
-              <p style={{ fontSize: 13, color: 'var(--text-tertiary)', lineHeight: 1.6 }}>
-                enter a zip code
-                <br />
-                to see jobs near you
-              </p>
-            </div>
-          )}
-          {feedState === 'loading' && (
-            <div className="loading-state">
-              <div className="spinner" />
-              <p className="loading-label">searching…</p>
-            </div>
-          )}
-          {feedState === 'loaded' && (
-            <>
-              <div className="feed-meta">
-                <span>{JOBS.length} jobs near {currentZip}</span>
-                <span>no experience needed</span>
+    <div className="app">
+      <header className="top-bar">
+        <p className="wordmark">Groundwork</p>
+        <div className="top-bar-controls">
+              <input
+                className="zip-input"
+                type="text"
+                placeholder="zip code"
+                maxLength={5}
+                inputMode="numeric"
+                value={zipInput}
+                onChange={(e) => setZipInput(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') doSearch();
+                }}
+              />
+              <button type="button" className="search-btn" onClick={doSearch}>
+                find jobs
+              </button>
+              <div className="radius-row">
+                <span className="radius-label">within</span>
+                <div className="chips">
+                  {[5, 10, 25].map((r) => (
+                    <button
+                      key={r}
+                      type="button"
+                      className={`chip${selectedRadius === r ? ' active' : ''}`}
+                      onClick={() => setRadius(r)}
+                    >
+                      {r} mi
+                    </button>
+                  ))}
+                </div>
               </div>
+            </div>
+      </header>
+
+      <div className={`feed-main${drawerOpen ? ' feed-main--dimmed' : ''}`}>
+            {feedState === 'initial' && (
+              <div className="empty-panel">
+                <div className="empty-icon">→</div>
+                <p className="empty-title">find work near you</p>
+                <p className="empty-sub">
+                  enter your zip code and we&apos;ll show you
+                  <br />
+                  jobs you can start today — no experience needed.
+                </p>
+              </div>
+            )}
+            {feedState === 'loading' && (
+              <div className="loading-state">
+                <div className="spinner" />
+                <p className="loading-label">searching…</p>
+              </div>
+            )}
+            {feedState === 'loaded' && (
+              <>
+                <div className="feed-meta">
+                  <span>{JOBS.length} jobs near {currentZip}</span>
+                  <span>no experience needed</span>
+                </div>
+                <div className="jobs-grid">
               {JOBS.map((j, i) => (
                 <div
                   key={j.title}
@@ -438,383 +456,366 @@ export default function App() {
                   </div>
                 </div>
               ))}
-            </>
-          )}
-        </div>
-      </aside>
-
-      <main className="main">
-        <div className={`panel${activePanel === 'empty' ? ' active' : ''}`}>
-          <div className="empty-panel">
-            <div className="empty-icon">→</div>
-            <p className="empty-title">find work near you</p>
-            <p className="empty-sub">
-              enter your zip code and we&apos;ll show you
-              <br />
-              jobs you can start today — no experience needed.
-            </p>
+                </div>
+              </>
+            )}
           </div>
-        </div>
-
-        <div className={`panel${activePanel === 'detail' ? ' active' : ''}`}>
-          {job && (
-            <>
-              <div className="detail-hero">
-                <p className="breadcrumb">
-                  jobs near {currentZip}{' '}
-                  <span style={{ color: 'var(--text-tertiary)' }}>›</span> {job.type}
-                </p>
-                <p className="detail-title">{job.title}</p>
-                <p className="detail-employer">{job.employer}</p>
-                <div className="detail-tags">
-                  <LevelTag zone={job.zone} />
-                  <span className="tag tag-muted">{job.dist} mi away</span>
-                  <span className="tag tag-muted">{job.shifts}</span>
-                </div>
-                <div className="wage-block">
-                  <p className="wage-big">{job.wage}</p>
-                  <p className="wage-sub">estimated hourly · paid weekly</p>
-                </div>
-                <a
-                  className="apply-btn"
-                  href="https://www.careeronestop.org/toolkit/jobs/find-jobs.aspx"
-                  target="_blank"
-                  rel="noreferrer"
-                >
-                  apply now →
-                </a>
-              </div>
-              <div className="detail-body">
-                <div>
-                  <div className="detail-section">
-                    <p className="section-label">what you&apos;ll do</p>
-                    <div className="task-list">
-                      {job.tasks.map((t) => (
-                        <div key={t} className="task-item">
-                          <div className="task-dot" />
-                          <span>{t}</span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                  <div className="detail-section">
-                    <p className="section-label">details</p>
-                    <div className="task-list">
-                      <div className="task-item">
-                        <div className="task-dot" />
-                        <span>No prior experience required</span>
-                      </div>
-                      <div className="task-item">
-                        <div className="task-dot" />
-                        <span>Apply and get matched in the app</span>
-                      </div>
-                      <div className="task-item">
-                        <div className="task-dot" />
-                        <span>Payment direct to your account or card</span>
-                      </div>
-                      <div className="task-item">
-                        <div className="task-dot" />
-                        <span>Posted {job.posted}</span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-                <div>
-                  <div
-                    className="next-step-card"
-                    onClick={() => renderGrow(currentJobIdx)}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter') renderGrow(currentJobIdx);
-                    }}
-                    role="button"
-                    tabIndex={0}
-                  >
-                    <p className="next-step-eyebrow">next step</p>
-                    <p className="next-step-title">{job.grow.title}</p>
-                    <p className="next-step-sub">
-                      {job.grow.wage} · {levelLabel(job.grow.zone)} · {job.grow.training}
+      {drawerOpen && job && (
+        <>
+          <div className="drawer-backdrop" onClick={closeDrawer} aria-hidden="true" />
+          <aside className="drawer drawer--open">
+            <button type="button" className="drawer-close" onClick={closeDrawer} aria-label="Close">
+              ×
+            </button>
+            <div
+              className={`drawer-scroll${drawerScreen === 'detail' || drawerScreen === 'grow' ? ' drawer-scroll--with-footer' : ''}`}
+            >
+              {drawerScreen === 'detail' && (
+                <>
+                  <div className="detail-hero drawer-detail-hero">
+                    <p className="breadcrumb">
+                      jobs near {currentZip}{' '}
+                      <span style={{ color: 'var(--text-tertiary)' }}>›</span> {job.type}
                     </p>
-                    <div className="next-step-arrow">→</div>
-                  </div>
-                </div>
-              </div>
-            </>
-          )}
-        </div>
-
-        <div className={`panel${activePanel === 'grow' ? ' active' : ''}`}>
-          {grow && job && (
-            <>
-              <div className="grow-hero">
-                <div className="from-pill">↑ next step from: {job.title.toLowerCase()}</div>
-                <p className="grow-title">{grow.title}</p>
-                <p className="grow-desc">{grow.desc}</p>
-                <div className="wage-block">
-                  <p className="wage-big">{grow.wage}</p>
-                  <p className="wage-sub">median hourly · national</p>
-                </div>
-                <div className="stat-grid">
-                  <div className="stat-card">
-                    <p className="stat-label">availability</p>
-                    <p className="stat-val">{levelLabel(grow.zone)}</p>
-                  </div>
-                  <div className="stat-card">
-                    <p className="stat-label">training</p>
-                    <p className="stat-val">{grow.training}</p>
-                  </div>
-                  <div className="stat-card">
-                    <p className="stat-label">education</p>
-                    <p className="stat-val">no diploma required</p>
-                  </div>
-                  <div className="stat-card">
-                    <p className="stat-label">outlook</p>
-                    <p className="stat-val">growing</p>
-                  </div>
-                </div>
-              </div>
-              <div className="grow-body">
-                <div className="detail-section">
-                    <p className="section-label">what you&apos;ll do</p>
-                    <div className="task-list">
-                      {grow.tasks.map((t) => (
-                        <div key={t} className="task-item">
-                          <div className="task-dot" />
-                          <span>{t}</span>
-                        </div>
-                      ))}
+                    <p className="detail-title">{job.title}</p>
+                    <p className="detail-employer">{job.employer}</p>
+                    <div className="detail-tags">
+                      <LevelTag zone={job.zone} />
+                      <span className="tag tag-muted">{job.dist} mi away</span>
+                      <span className="tag tag-muted">{job.shifts}</span>
                     </div>
-                </div>
-                <div className="pathway-card">
-                    <p className="pathway-label">how to get there</p>
-                    <div className="pathway-step">
-                      <div className="step-num">1</div>
-                      <div className="step-body">
-                        <p className="step-title">start with a job today</p>
-                        <p className="step-sub">build work history while you earn</p>
-                      </div>
+                    <div className="wage-block">
+                      <p className="wage-big">{job.wage}</p>
+                      <p className="wage-sub">estimated hourly · paid weekly</p>
                     </div>
-                    <div className="step-divider" />
-                    <div className="pathway-step">
-                      <div className="step-num">2</div>
-                      <div className="step-body">
-                        <p className="step-title">complete short training</p>
-                        <p className="step-sub">{grow.training}</p>
-                      </div>
-                    </div>
-                    <div className="step-divider" />
-                    <div className="pathway-step">
-                      <div className="step-num">3</div>
-                      <div className="step-body">
-                        <p className="step-title">get matched to {grow.title.toLowerCase()} roles</p>
-                        <p className="step-sub">earn {grow.wage} once you&apos;re there</p>
-                      </div>
-                    </div>
-                    <button
-                      type="button"
-                      className="training-btn"
-                      onClick={() => loadTraining(grow.keyword, grow.title)}
+                    <a
+                      className="apply-btn"
+                      href="https://www.careeronestop.org/toolkit/jobs/find-jobs.aspx"
+                      target="_blank"
+                      rel="noreferrer"
                     >
-                      find training near me →
-                    </button>
-                    <button type="button" className="save-btn">
-                      save as a goal
-                    </button>
+                      apply now →
+                    </a>
                   </div>
-              </div>
-            </>
-          )}
-        </div>
-
-        <div className={`panel${activePanel === 'training' ? ' active' : ''}`}>
-          <div className="training-hero">
-            <p className="training-context">
-              programs to become a <strong>{trainingRoleTitle.toLowerCase()}</strong> near {currentZip}
-            </p>
-            <div className="filter-row">
-              {[
-                ['all', 'all'],
-                ['inperson', 'in-person'],
-                ['online', 'online'],
-                ['cert', 'certificate'],
-              ].map(([filter, label]) => (
-                <button
-                  key={filter}
-                  type="button"
-                  className={`chip${trainingFilter === filter ? ' active' : ''}`}
-                  onClick={() => filterPrograms(filter)}
-                >
-                  {label}
-                </button>
-              ))}
-            </div>
-          </div>
-          <div className="training-body">
-            {programsState === 'loaded' && (
-              <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginBottom: 16 }}>
-                {filteredPrograms.length} program{filteredPrograms.length !== 1 ? 's' : ''} found
-              </div>
-            )}
-            {programsState === 'loading' && (
-              <div className="loading-state">
-                <div className="spinner" />
-                <p className="loading-label">searching programs near {currentZip}…</p>
-              </div>
-            )}
-            {programsState === 'error' && (
-              <div className="empty-programs">
-                couldn&apos;t load training programs.
-                <br />
-                check your connection and try again.
-              </div>
-            )}
-            {programsState === 'loaded' && filteredPrograms.length === 0 && (
-              <div className="empty-programs">
-                no programs match that filter.
-                <br />
-                try broadening your search.
-              </div>
-            )}
-            {programsState === 'loaded' && filteredPrograms.length > 0 && (
-              <div className="programs-grid">
-                {filteredPrograms.map((p) => (
-                  <div
-                    key={`${p.name}-${p.provider}-${p.streetAddress}`}
-                    className="program-card"
-                    onClick={() => selectProgram(p)}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter') selectProgram(p);
-                    }}
-                    role="button"
-                    tabIndex={0}
-                  >
-                    <p className="program-name">{p.name}</p>
-                    <p className="program-provider">{p.provider}</p>
-                    <div className="tags" style={{ margin: '4px 0' }}>
-                      <span className="tag tag-muted">{p.format}</span>
-                      {p.cert && <span className="tag tag-cert">certificate</span>}
-                    </div>
-                    <p className="program-address">📍 {p.address}</p>
-                  </div>
-                ))}
-              </div>
-            )}
-            <div className="attribution">
-              training data provided by{' '}
-              <a href="https://www.careeronestop.org" target="_blank" rel="noreferrer">
-                CareerOneStop
-              </a>
-            </div>
-          </div>
-        </div>
-
-        <div
-          className={`panel${activePanel === 'program' ? ' active' : ''}`}
-          id="panel-program"
-        >
-          {selectedProgram && (
-            <>
-              <div className="program-hero">
-                <button
-                  type="button"
-                  className="program-back-btn"
-                  onClick={() => showPanel('training')}
-                >
-                  ← back to programs
-                </button>
-                <p className="program-detail-title">{selectedProgram.name}</p>
-                <p className="program-detail-subtitle">{selectedProgram.provider}</p>
-                <div className="detail-tags">
-                  {selectedProgram.formats.map((f) => (
-                    <span key={f} className="tag tag-muted">
-                      {f}
-                    </span>
-                  ))}
-                  {selectedProgram.programLengths.map((len) => (
-                    <span key={len} className="tag tag-cert">
-                      {len}
-                    </span>
-                  ))}
-                  <span className="tag tag-muted">{selectedProgram.distanceLabel}</span>
-                </div>
-              </div>
-              <div className="program-body">
-                <div className="program-body-main">
-                  {occupationOutcomes && (
+                  <div className="drawer-detail-body">
                     <div className="detail-section">
-                      <p className="section-label">what you&apos;ll learn</p>
+                      <p className="section-label">what you&apos;ll do</p>
                       <div className="task-list">
-                        <div className="task-item">
-                          <div className="task-dot" />
-                          <span>{occupationOutcomes}</span>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-                  {graduationStats.length > 0 && (
-                    <div className="detail-section">
-                      <p className="section-label">graduation data</p>
-                      <div className="stat-grid program-grad-grid">
-                        {graduationStats.map((stat) => (
-                          <div key={stat.label} className="stat-card">
-                            <p className="stat-label">{stat.label}</p>
-                            <p className="stat-val">{stat.count}</p>
+                        {job.tasks.map((t) => (
+                          <div key={t} className="task-item">
+                            <div className="task-dot" />
+                            <span>{t}</span>
                           </div>
                         ))}
                       </div>
                     </div>
-                  )}
-                  <div className="detail-section">
-                    <p className="section-label">location</p>
-                    <div className="program-location">
-                      <p>{selectedProgram.streetAddress}</p>
-                      <p>
-                        {selectedProgram.city}
-                        {selectedProgram.stateAbbr ? `, ${selectedProgram.stateAbbr}` : ''}{' '}
-                        {selectedProgram.zip}
-                      </p>
-                      {selectedProgram.phone && <p>{selectedProgram.phone}</p>}
+                    <div className="detail-section">
+                      <p className="section-label">details</p>
+                      <div className="task-list">
+                        <div className="task-item">
+                          <div className="task-dot" />
+                          <span>No prior experience required</span>
+                        </div>
+                        <div className="task-item">
+                          <div className="task-dot" />
+                          <span>Apply and get matched in the app</span>
+                        </div>
+                        <div className="task-item">
+                          <div className="task-dot" />
+                          <span>Payment direct to your account or card</span>
+                        </div>
+                        <div className="task-item">
+                          <div className="task-dot" />
+                          <span>Posted {job.posted}</span>
+                        </div>
+                      </div>
                     </div>
                   </div>
-                </div>
-                <div className="program-cta-sidebar">
+                </>
+              )}
+
+              {drawerScreen === 'grow' && grow && (
+                <>
+                  <button type="button" className="drawer-back-btn" onClick={drawerBack}>
+                    ← back
+                  </button>
+                  <div className="grow-hero drawer-panel-hero">
+                    <div className="from-pill">↑ next step from: {job.title.toLowerCase()}</div>
+                    <p className="grow-title">{grow.title}</p>
+                    <p className="grow-desc">{grow.desc}</p>
+                    <div className="wage-block">
+                      <p className="wage-big">{grow.wage}</p>
+                      <p className="wage-sub">median hourly · national</p>
+                    </div>
+                    <div className="stat-grid">
+                      <div className="stat-card">
+                        <p className="stat-label">availability</p>
+                        <p className="stat-val">{levelLabel(grow.zone)}</p>
+                      </div>
+                      <div className="stat-card">
+                        <p className="stat-label">training</p>
+                        <p className="stat-val">{grow.training}</p>
+                      </div>
+                      <div className="stat-card">
+                        <p className="stat-label">education</p>
+                        <p className="stat-val">no diploma required</p>
+                      </div>
+                      <div className="stat-card">
+                        <p className="stat-label">outlook</p>
+                        <p className="stat-val">growing</p>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="grow-body drawer-panel-body">
+                    <div className="detail-section">
+                      <p className="section-label">what you&apos;ll do</p>
+                      <div className="task-list">
+                        {grow.tasks.map((t) => (
+                          <div key={t} className="task-item">
+                            <div className="task-dot" />
+                            <span>{t}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                    <div className="pathway-card">
+                      <p className="pathway-label">how to get there</p>
+                      <div className="pathway-step">
+                        <div className="step-num">1</div>
+                        <div className="step-body">
+                          <p className="step-title">start with a job today</p>
+                          <p className="step-sub">build work history while you earn</p>
+                        </div>
+                      </div>
+                      <div className="step-divider" />
+                      <div className="pathway-step">
+                        <div className="step-num">2</div>
+                        <div className="step-body">
+                          <p className="step-title">complete short training</p>
+                          <p className="step-sub">{grow.training}</p>
+                        </div>
+                      </div>
+                      <div className="step-divider" />
+                      <div className="pathway-step">
+                        <div className="step-num">3</div>
+                        <div className="step-body">
+                          <p className="step-title">get matched to {grow.title.toLowerCase()} roles</p>
+                          <p className="step-sub">earn {grow.wage} once you&apos;re there</p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </>
+              )}
+
+              {drawerScreen === 'training' && (
+                <>
+                  <button type="button" className="drawer-back-btn" onClick={drawerBack}>
+                    ← back
+                  </button>
+                  <div className="training-hero drawer-panel-hero drawer-training-hero">
+                    <p className="training-context">
+                      programs to become a <strong>{trainingRoleTitle.toLowerCase()}</strong> near {currentZip}
+                    </p>
+                    <div className="filter-row">
+                      {[
+                        ['all', 'all'],
+                        ['inperson', 'in-person'],
+                        ['online', 'online'],
+                        ['cert', 'certificate'],
+                      ].map(([filter, label]) => (
+                        <button
+                          key={filter}
+                          type="button"
+                          className={`chip${trainingFilter === filter ? ' active' : ''}`}
+                          onClick={() => filterPrograms(filter)}
+                        >
+                          {label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                  <div className="training-body drawer-panel-body">
+                    {programsState === 'loaded' && (
+                      <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginBottom: 16 }}>
+                        {filteredPrograms.length} program{filteredPrograms.length !== 1 ? 's' : ''} found
+                      </div>
+                    )}
+                    {programsState === 'loading' && (
+                      <div className="loading-state">
+                        <div className="spinner" />
+                        <p className="loading-label">searching programs near {currentZip}…</p>
+                      </div>
+                    )}
+                    {programsState === 'error' && (
+                      <div className="empty-programs">
+                        couldn&apos;t load training programs.
+                        <br />
+                        check your connection and try again.
+                      </div>
+                    )}
+                    {programsState === 'loaded' && filteredPrograms.length === 0 && (
+                      <div className="empty-programs">
+                        no programs match that filter.
+                        <br />
+                        try broadening your search.
+                      </div>
+                    )}
+                    {programsState === 'loaded' && filteredPrograms.length > 0 && (
+                      <div className="programs-grid drawer-programs-grid">
+                        {filteredPrograms.map((p) => (
+                          <div
+                            key={`${p.name}-${p.provider}-${p.streetAddress}`}
+                            className="program-card"
+                            onClick={() => selectProgram(p)}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter') selectProgram(p);
+                            }}
+                            role="button"
+                            tabIndex={0}
+                          >
+                            <p className="program-name">{p.name}</p>
+                            <p className="program-provider">{p.provider}</p>
+                            <div className="tags" style={{ margin: '4px 0' }}>
+                              <span className="tag tag-muted">{p.format}</span>
+                              {p.cert && <span className="tag tag-cert">certificate</span>}
+                            </div>
+                            <p className="program-address">📍 {p.address}</p>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                    <div className="attribution drawer-attribution">
+                      training data provided by{' '}
+                      <a href="https://www.careeronestop.org" target="_blank" rel="noreferrer">
+                        CareerOneStop
+                      </a>
+                    </div>
+                  </div>
+                </>
+              )}
+
+              {drawerScreen === 'program' && selectedProgram && (
+                <>
+                  <button type="button" className="drawer-back-btn" onClick={drawerBack}>
+                    ← back
+                  </button>
+                  <div className="program-hero drawer-panel-hero">
+                    <p className="program-detail-title">{selectedProgram.name}</p>
+                    <p className="program-detail-subtitle">{selectedProgram.provider}</p>
+                    <div className="detail-tags">
+                      {selectedProgram.formats.map((f) => (
+                        <span key={f} className="tag tag-muted">
+                          {f}
+                        </span>
+                      ))}
+                      {selectedProgram.programLengths.map((len) => (
+                        <span key={len} className="tag tag-cert">
+                          {len}
+                        </span>
+                      ))}
+                      <span className="tag tag-muted">{selectedProgram.distanceLabel}</span>
+                    </div>
+                  </div>
+                  <div className="program-body drawer-program-body">
+                    <div className="program-body-main">
+                      {occupationOutcomes && (
+                        <div className="detail-section">
+                          <p className="section-label">what you&apos;ll learn</p>
+                          <div className="task-list">
+                            <div className="task-item">
+                              <div className="task-dot" />
+                              <span>{occupationOutcomes}</span>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                      {graduationStats.length > 0 && (
+                        <div className="detail-section">
+                          <p className="section-label">graduation data</p>
+                          <div className="stat-grid program-grad-grid">
+                            {graduationStats.map((stat) => (
+                              <div key={stat.label} className="stat-card">
+                                <p className="stat-label">{stat.label}</p>
+                                <p className="stat-val">{stat.count}</p>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                      <div className="detail-section">
+                        <p className="section-label">location</p>
+                        <div className="program-location">
+                          <p>{selectedProgram.streetAddress}</p>
+                          <p>
+                            {selectedProgram.city}
+                            {selectedProgram.stateAbbr ? `, ${selectedProgram.stateAbbr}` : ''}{' '}
+                            {selectedProgram.zip}
+                          </p>
+                          {selectedProgram.phone && <p>{selectedProgram.phone}</p>}
+                        </div>
+                      </div>
+                    </div>
+                    <div className="program-cta-sidebar drawer-program-cta">
+                      {selectedProgram.phone && (
+                        <a
+                          className="program-cta-primary program-cta-primary-desktop"
+                          href={phoneHref(selectedProgram.phone)}
+                        >
+                          call to enroll →
+                        </a>
+                      )}
+                      <a
+                        className="program-cta-secondary"
+                        href={careerOneStopProgramUrl(selectedProgram.name, currentZip)}
+                        target="_blank"
+                        rel="noreferrer"
+                      >
+                        find this program →
+                      </a>
+                      <a
+                        className="program-cta-link"
+                        href={selectedProgram.url}
+                        target="_blank"
+                        rel="noreferrer"
+                      >
+                        visit school website →
+                      </a>
+                    </div>
+                  </div>
                   {selectedProgram.phone && (
                     <a
-                      className="program-cta-primary program-cta-primary-desktop"
+                      className="program-call-bar-mobile drawer-program-call-bar"
                       href={phoneHref(selectedProgram.phone)}
                     >
                       call to enroll →
                     </a>
                   )}
-                  <a
-                    className="program-cta-secondary"
-                    href={careerOneStopProgramUrl(selectedProgram.name, currentZip)}
-                    target="_blank"
-                    rel="noreferrer"
-                  >
-                    find this program →
-                  </a>
-                  <a
-                    className="program-cta-link"
-                    href={selectedProgram.url}
-                    target="_blank"
-                    rel="noreferrer"
-                  >
-                    visit school website →
-                  </a>
-                </div>
-              </div>
-              {selectedProgram.phone && (
-                <a
-                  className="program-call-bar-mobile"
-                  href={phoneHref(selectedProgram.phone)}
-                >
-                  call to enroll →
-                </a>
+                </>
               )}
-            </>
-          )}
-        </div>
-      </main>
+            </div>
+            {drawerScreen === 'detail' && (
+              <button
+                type="button"
+                className="drawer-next-bar"
+                onClick={() => renderGrow(currentJobIdx)}
+              >
+                <span>level up → {job.grow.title}</span>
+                <span className="drawer-next-wage">{job.grow.wage}</span>
+              </button>
+            )}
+            {drawerScreen === 'grow' && grow && (
+              <button
+                type="button"
+                className="drawer-next-bar drawer-next-bar--center"
+                onClick={() => loadTraining(grow.keyword, grow.title)}
+              >
+                find training near me →
+              </button>
+            )}
+          </aside>
+        </>
+      )}
     </div>
   );
 }
