@@ -37,6 +37,17 @@ function LevelTag({ zone }) {
   return <span className="tag tag-some">some experience</span>;
 }
 
+function shortenShift(shifts) {
+  if (!shifts) return '';
+  const s = shifts.toLowerCase();
+  if (s.includes('mon') && s.includes('fri')) return 'Mon–Fri';
+  if (s.includes('evening')) return 'Evenings';
+  if (s.includes('overnight')) return 'Overnight';
+  if (s.includes('flexible')) return 'Flexible';
+  if (s.includes('all shift')) return 'All shifts';
+  return shifts.split(',')[0].trim();
+}
+
 const JOBS = [
   {
     title: 'Landscaping and groundskeeping workers',
@@ -389,153 +400,165 @@ export default function App() {
       ? `qualify for roles like: ${selectedProgram.occupations.join(', ')}`
       : null;
 
-  const panelScrollClass =
-    panelScreen === 'detail' || panelScreen === 'grow' ? ' panel-scroll--with-footer' : '';
-
   const renderJobPanel = () => {
     if (!job) return null;
 
+    if (panelScreen === 'detail') {
+      return (
+        <div className="detail-panel">
+          <div className="detail-scroll">
+            <p className="breadcrumb">
+              jobs near {currentZip}{' '}
+              <span style={{ color: 'var(--text-tertiary)' }}>›</span> {job.type}
+            </p>
+            <p className="detail-title">{job.title}</p>
+            <p className="detail-employer">{job.employer}</p>
+            <div className="detail-tags">
+              <LevelTag zone={job.zone} />
+              <span className="tag tag-muted">{job.dist} mi away</span>
+              <span className="tag tag-muted">{job.shifts}</span>
+            </div>
+            <div className="wage-block">
+              <p className="wage-big">{job.wage}</p>
+              <p className="wage-sub">estimated hourly · paid weekly</p>
+            </div>
+            <a
+              className="apply-btn"
+              href="https://www.careeronestop.org/toolkit/jobs/find-jobs.aspx"
+              target="_blank"
+              rel="noreferrer"
+            >
+              apply now →
+            </a>
+            <div className="detail-section">
+              <p className="section-label">what you&apos;ll do</p>
+              <div className="task-list">
+                {job.tasks.map((t) => (
+                  <div key={t} className="task-item">
+                    <div className="task-dot" />
+                    <span>{t}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+            <div className="detail-section">
+              <p className="section-label">details</p>
+              <div className="task-list">
+                <div className="task-item">
+                  <div className="task-dot" />
+                  <span>No prior experience required</span>
+                </div>
+                <div className="task-item">
+                  <div className="task-dot" />
+                  <span>Apply and get matched in the app</span>
+                </div>
+                <div className="task-item">
+                  <div className="task-dot" />
+                  <span>Payment direct to your account or card</span>
+                </div>
+                <div className="task-item">
+                  <div className="task-dot" />
+                  <span>Posted {job.posted}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+          <button type="button" className="level-up-bar" onClick={() => renderGrow(currentJobIdx)}>
+            <span>level up → {job.grow.title}</span>
+            <span className="panel-next-wage">{job.grow.wage}</span>
+          </button>
+        </div>
+      );
+    }
+
+    if (panelScreen === 'grow' && grow) {
+      return (
+        <div className="grow-panel">
+          <div className="grow-scroll">
+            <button type="button" className="panel-back-btn" onClick={panelBack}>
+              ← back
+            </button>
+            <div className="grow-hero">
+              <div className="from-pill">↑ next step from: {job.title.toLowerCase()}</div>
+              <p className="grow-title">{grow.title}</p>
+              <p className="grow-desc">{grow.desc}</p>
+              <div className="wage-block">
+                <p className="wage-big">{grow.wage}</p>
+                <p className="wage-sub">median hourly · national</p>
+              </div>
+              <div className="stat-grid">
+                <div className="stat-card">
+                  <p className="stat-label">availability</p>
+                  <p className="stat-val">{levelLabel(grow.zone)}</p>
+                </div>
+                <div className="stat-card">
+                  <p className="stat-label">training</p>
+                  <p className="stat-val">{grow.training}</p>
+                </div>
+                <div className="stat-card">
+                  <p className="stat-label">education</p>
+                  <p className="stat-val">no diploma required</p>
+                </div>
+                <div className="stat-card">
+                  <p className="stat-label">outlook</p>
+                  <p className="stat-val">growing</p>
+                </div>
+              </div>
+            </div>
+            <div className="grow-body">
+              <div className="detail-section">
+                <p className="section-label">what you&apos;ll do</p>
+                <div className="task-list">
+                  {grow.tasks.map((t) => (
+                    <div key={t} className="task-item">
+                      <div className="task-dot" />
+                      <span>{t}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+              <div className="pathway-card">
+                <p className="pathway-label">how to get there</p>
+                <div className="pathway-step">
+                  <div className="step-num">1</div>
+                  <div className="step-body">
+                    <p className="step-title">start with a job today</p>
+                    <p className="step-sub">build work history while you earn</p>
+                  </div>
+                </div>
+                <div className="step-divider" />
+                <div className="pathway-step">
+                  <div className="step-num">2</div>
+                  <div className="step-body">
+                    <p className="step-title">complete short training</p>
+                    <p className="step-sub">{grow.training}</p>
+                  </div>
+                </div>
+                <div className="step-divider" />
+                <div className="pathway-step">
+                  <div className="step-num">3</div>
+                  <div className="step-body">
+                    <p className="step-title">get matched to {grow.title.toLowerCase()} roles</p>
+                    <p className="step-sub">earn {grow.wage} once you&apos;re there</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <button
+            type="button"
+            className="find-training-bar"
+            onClick={() => loadTraining(grow.keyword, grow.title)}
+          >
+            find training near me →
+          </button>
+        </div>
+      );
+    }
+
     return (
       <div className="panel-root">
-        <div className={`panel-scroll${panelScrollClass}`}>
-          {panelScreen === 'detail' && (
-            <>
-              <div className="detail-hero panel-detail-hero">
-                <p className="breadcrumb">
-                  jobs near {currentZip}{' '}
-                  <span style={{ color: 'var(--text-tertiary)' }}>›</span> {job.type}
-                </p>
-                <p className="detail-title">{job.title}</p>
-                <p className="detail-employer">{job.employer}</p>
-                <div className="detail-tags">
-                  <LevelTag zone={job.zone} />
-                  <span className="tag tag-muted">{job.dist} mi away</span>
-                  <span className="tag tag-muted">{job.shifts}</span>
-                </div>
-                <div className="wage-block">
-                  <p className="wage-big">{job.wage}</p>
-                  <p className="wage-sub">estimated hourly · paid weekly</p>
-                </div>
-                <a
-                  className="apply-btn"
-                  href="https://www.careeronestop.org/toolkit/jobs/find-jobs.aspx"
-                  target="_blank"
-                  rel="noreferrer"
-                >
-                  apply now →
-                </a>
-              </div>
-              <div className="panel-detail-body">
-                <div className="detail-section">
-                  <p className="section-label">what you&apos;ll do</p>
-                  <div className="task-list">
-                    {job.tasks.map((t) => (
-                      <div key={t} className="task-item">
-                        <div className="task-dot" />
-                        <span>{t}</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-                <div className="detail-section">
-                  <p className="section-label">details</p>
-                  <div className="task-list">
-                    <div className="task-item">
-                      <div className="task-dot" />
-                      <span>No prior experience required</span>
-                    </div>
-                    <div className="task-item">
-                      <div className="task-dot" />
-                      <span>Apply and get matched in the app</span>
-                    </div>
-                    <div className="task-item">
-                      <div className="task-dot" />
-                      <span>Payment direct to your account or card</span>
-                    </div>
-                    <div className="task-item">
-                      <div className="task-dot" />
-                      <span>Posted {job.posted}</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </>
-          )}
-
-          {panelScreen === 'grow' && grow && (
-            <>
-              <button type="button" className="panel-back-btn" onClick={panelBack}>
-                ← back
-              </button>
-              <div className="grow-hero panel-panel-hero">
-                <div className="from-pill">↑ next step from: {job.title.toLowerCase()}</div>
-                <p className="grow-title">{grow.title}</p>
-                <p className="grow-desc">{grow.desc}</p>
-                <div className="wage-block">
-                  <p className="wage-big">{grow.wage}</p>
-                  <p className="wage-sub">median hourly · national</p>
-                </div>
-                <div className="stat-grid">
-                  <div className="stat-card">
-                    <p className="stat-label">availability</p>
-                    <p className="stat-val">{levelLabel(grow.zone)}</p>
-                  </div>
-                  <div className="stat-card">
-                    <p className="stat-label">training</p>
-                    <p className="stat-val">{grow.training}</p>
-                  </div>
-                  <div className="stat-card">
-                    <p className="stat-label">education</p>
-                    <p className="stat-val">no diploma required</p>
-                  </div>
-                  <div className="stat-card">
-                    <p className="stat-label">outlook</p>
-                    <p className="stat-val">growing</p>
-                  </div>
-                </div>
-              </div>
-              <div className="grow-body panel-panel-body">
-                <div className="detail-section">
-                  <p className="section-label">what you&apos;ll do</p>
-                  <div className="task-list">
-                    {grow.tasks.map((t) => (
-                      <div key={t} className="task-item">
-                        <div className="task-dot" />
-                        <span>{t}</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-                <div className="pathway-card">
-                  <p className="pathway-label">how to get there</p>
-                  <div className="pathway-step">
-                    <div className="step-num">1</div>
-                    <div className="step-body">
-                      <p className="step-title">start with a job today</p>
-                      <p className="step-sub">build work history while you earn</p>
-                    </div>
-                  </div>
-                  <div className="step-divider" />
-                  <div className="pathway-step">
-                    <div className="step-num">2</div>
-                    <div className="step-body">
-                      <p className="step-title">complete short training</p>
-                      <p className="step-sub">{grow.training}</p>
-                    </div>
-                  </div>
-                  <div className="step-divider" />
-                  <div className="pathway-step">
-                    <div className="step-num">3</div>
-                    <div className="step-body">
-                      <p className="step-title">get matched to {grow.title.toLowerCase()} roles</p>
-                      <p className="step-sub">earn {grow.wage} once you&apos;re there</p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </>
-          )}
-
+        <div className="panel-scroll">
           {panelScreen === 'training' && (
             <>
               <button type="button" className="panel-back-btn" onClick={panelBack}>
@@ -722,21 +745,6 @@ export default function App() {
             </>
           )}
         </div>
-        {panelScreen === 'detail' && (
-          <button type="button" className="panel-next-bar" onClick={() => renderGrow(currentJobIdx)}>
-            <span>level up → {job.grow.title}</span>
-            <span className="panel-next-wage">{job.grow.wage}</span>
-          </button>
-        )}
-        {panelScreen === 'grow' && grow && (
-          <button
-            type="button"
-            className="panel-next-bar panel-next-bar--center"
-            onClick={() => loadTraining(grow.keyword, grow.title)}
-          >
-            find training near me →
-          </button>
-        )}
       </div>
     );
   };
@@ -827,11 +835,11 @@ export default function App() {
               </div>
             )}
             {feedState === 'loaded' && (
-              <div className="jobs-list">
+              <div className="jobs-feed">
                 {JOBS.map((j, i) => (
                   <div
                     key={j.title}
-                    className={`job-row${currentJobIdx === i ? ' job-row--active' : ''}`}
+                    className={`job-card${currentJobIdx === i ? ' job-card--active' : ''}`}
                     onClick={() => selectJob(i)}
                     onKeyDown={(e) => {
                       if (e.key === 'Enter') selectJob(i);
@@ -839,11 +847,16 @@ export default function App() {
                     role="button"
                     tabIndex={0}
                   >
-                    <span className="job-row-dot" aria-hidden="true" />
-                    <span className="job-row-title">{j.title}</span>
-                    <LevelTag zone={j.zone} />
-                    <span className="job-row-dist">{j.dist} mi</span>
-                    <span className="job-row-wage">{j.wage}</span>
+                    <div className="job-card-top">
+                      <span className="job-card-title">{j.title}</span>
+                      <span className="job-card-wage">{j.wage}</span>
+                    </div>
+                    <p className="job-card-employer">{j.employer}</p>
+                    <div className="job-card-bottom">
+                      <span className="job-card-pill job-card-pill--start">start today</span>
+                      <span className="job-card-pill job-card-pill--shift">{shortenShift(j.shifts)}</span>
+                      <span className="job-card-dist">{j.dist} mi</span>
+                    </div>
                   </div>
                 ))}
               </div>
